@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+    <title>Ascelia Owners & Stock Price Chart</title>
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f4f4f4;
+        }
+
+        #container {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+
+    <script>
+        // Load both JSON files
+        Promise.all([
+            fetch('data.json').then(response => response.json()),
+            fetch('prices.json').then(response => response.json())
+        ])
+        .then(([ownersData, pricesData]) => {
+            // Convert OHLC prices to Highcharts format
+            const ohlcSeries = pricesData.ohlc.map(point => [
+                point.timestamp,
+                point.open,
+                point.high,
+                point.low,
+                point.close
+            ]);
+
+            // Convert owners' data into a Map for lookup
+            const ownersMap = new Map();
+            ownersData.ownersPoints.forEach(point => {
+                ownersMap.set(point.timestamp, point.numberOfOwners);
+            });
+
+            // Merge all unique timestamps from both datasets
+            const allTimestamps = new Set([
+                ...ownersMap.keys(),
+                ...pricesData.ohlc.map(point => point.timestamp)
+            ]);
+
+            // Sort timestamps chronologically
+            const sortedTimestamps = [...allTimestamps].sort((a, b) => a - b);
+
+            // Generate owners' series by interpolating missing values
+            let lastKnownOwners = null;
+            const ownersSeries = sortedTimestamps.map(timestamp => {
+                if (ownersMap.has(timestamp)) {
+                    lastKnownOwners = ownersMap.get(timestamp);
+                }
+                return [timestamp, lastKnownOwners];
+            }).filter(point => point[1] !== null); // Remove points where owners are still null
+
+            // Create the Highcharts stock chart
+            Highcharts.stockChart('container', {
+                chart: {
+                    zoomType: 'x' // Enables drag-to-zoom
+                },
+                rangeSelector: {
+                    selected: 1
+                },
+                title: {
+                    text: 'Ascelia Owners & Stock Price Over Time'
+                },
+                yAxis: [{
+                    labels: { align: 'right' },
+                    title: { text: 'Stock Price (SEK)' },
+                    height: '60%',
+                    lineWidth: 2
+                }, {
+                    labels: { align: 'right' },
+                    title: { text: 'Number of Owners' },
+                    top: '65%',
+                    height: '35%',
+                    offset: 0,
+                    lineWidth: 2
+                }],
+                series: [{
+                    type: 'candlestick',
+                    name: 'Stock Price',
+                    data: ohlcSeries,
+                    yAxis: 0
+                }, {
+                    type: 'spline', // Smooth owners' line
+                    name: 'Number of Owners',
+                    data: ownersSeries,
+                    yAxis: 1,
+                    color: 'blue',
+                    lineWidth: 2, // Slightly thicker line
+                    marker: {
+                        enabled: false // No dots
+                    },
+                    tooltip: {
+                        valueDecimals: 0
+                    }
+                }],
+                credits: { enabled: false },
+                navigator: {
+                    enabled: true // Enables the lower mini chart for better zoom control
+                },
+                scrollbar: {
+                    enabled: true // Enables scrolling after zooming
+                }
+            });
+        })
+        .catch(error => console.error('Error loading JSON:', error));
+    </script>
+</body>
+</html>

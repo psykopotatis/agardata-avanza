@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
+    <title>Ascelia Owners Chart</title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f4f4f4;
+        }
+
+        #container {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+
+    <script>
+        // Fetch data.json dynamically
+        fetch('data.json')
+            .then(response => response.json())
+            .then(data => {
+                // Convert timestamps to Highcharts-friendly format
+                const formattedData = data.ownersPoints.map(point => [
+                    point.timestamp,
+                    point.numberOfOwners
+                ]);
+
+                // Sort data to ensure proper rendering
+                formattedData.sort((a, b) => a[0] - b[0]);
+
+                // Create the Highcharts chart
+                Highcharts.chart('container', {
+                    chart: {
+                        type: 'line',
+                        zoomType: 'x', // Enables zooming on x-axis (time)
+                        height: window.innerHeight,
+                        resetZoomButton: {
+                            position: {
+                                align: 'right',
+                                verticalAlign: 'top',
+                                x: -10,
+                                y: 10
+                            }
+                        }
+                    },
+                    title: {
+                        text: 'Ascelia Owners Over Time'
+                    },
+                    xAxis: {
+                        type: 'datetime',
+                        title: {
+                            text: 'Date'
+                        },
+                        ordinal: false,  // Ensures proper zooming behavior
+                        minRange: 7 * 24 * 3600 * 1000  // Prevents over-zooming (7 days min)
+                    },
+                    yAxis: {
+                        title: {
+                            text: 'Number of Owners'
+                        }
+                    },
+                    tooltip: {
+                        shared: true,
+                        crosshairs: true
+                    },
+                    legend: {
+                        enabled: false
+                    },
+                    series: [{
+                        name: 'Owners',
+                        data: formattedData,
+                        marker: {
+                            enabled: true,  // Enables dots on the line
+                            radius: 4       // Adjusts dot size
+                        },
+                        dataLabels: {
+                            enabled: true,  // Enables number labels
+                            format: '{y}',  // Show only the number
+                            align: 'center',
+                            verticalAlign: 'bottom',
+                            style: {
+                                fontSize: '12px',
+                            },
+                            allowOverlap: false // Avoids label clutter
+                        }
+                    }],
+                    credits: {
+                        enabled: false
+                    }
+                });
+
+                // Adjust chart size on window resize
+                window.addEventListener('resize', () => {
+                    Highcharts.charts[0].setSize(null, window.innerHeight, false);
+                });
+
+            })
+            .catch(error => console.error('Error loading JSON:', error));
+    </script>
+</body>
+</html>
