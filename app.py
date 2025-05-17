@@ -5,6 +5,10 @@ Simple Flask web server to serve Ascelia Owners Chart and dynamic data.
 from flask import Flask, jsonify, send_from_directory
 import requests
 from flask_caching import Cache
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder=None)
 app.config['CACHE_TYPE'] = 'SimpleCache'
@@ -26,7 +30,7 @@ def data_json():
     Fetch owners data from Avanza API and return as JSON.
     """
     url = "https://www.avanza.se/_api/market-guide/number-of-owners/941919"
-    print("GET %s" % url)
+    logger.info("GET %s" % url)
     headers = {"User-Agent": "Mozilla/5.0"}
     response = requests.get(url, headers=headers)
     if response.status_code != 200:
