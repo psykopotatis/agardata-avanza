@@ -33,9 +33,34 @@
     </style>
 </head>
 <body>
+<div id="info-box" style="position: absolute; top: 10px; left: 10px; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px #ccc;">
+  <strong>Ascelia Pharma – Ägare:</strong>
+  <div id="owner-info">Laddar...</div>
+</div>
+
     <div id="container"></div>
 
     <script>
+        fetch('/api/ascelia-owner-change')
+  .then(res => res.json())
+  .then(info => {
+    document.getElementById('owner-info').innerHTML = `
+      <div><strong>Nuvarande ägare:</strong> ${info.numberOfOwners.toLocaleString()}</div>
+      <div><strong>Förändring:</strong></div>
+      <ul>
+        <li>1 dag: ${info.changes["1d"]}</li>
+        <li>1 vecka: ${info.changes["1w"]}</li>
+        <li>1 månad: ${info.changes["1m"]}</li>
+        <li>3 månader: ${info.changes["3m"]}</li>
+        <li>i år: ${info.changes["ytd"]}</li>
+      </ul>
+    `;
+  })
+  .catch(err => {
+    document.getElementById('owner-info').textContent = 'Fel vid hämtning.';
+    console.error(err);
+  });
+
         // Fetch data.json dynamically
     Promise.all([
         fetch('data.json').then(res => res.json()),
