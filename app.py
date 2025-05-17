@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder=None)
 app.config['CACHE_TYPE'] = 'SimpleCache'
-# 6 hours cache
-app.config['CACHE_DEFAULT_TIMEOUT'] = 60 * 60 * 60 * 6
+# 2 hours cache
+app.config['CACHE_DEFAULT_TIMEOUT'] = 60 * 60 * 2
 cache = Cache(app)
 
 @app.route('/')
@@ -29,7 +29,7 @@ def index():
     return send_from_directory('.', 'chart.html')
 
 @app.route('/data.json')
-@cache.cached(timeout=3600)
+@cache.cached()
 def data_json():
     """
     Fetch owners data from Avanza API and return as JSON.
@@ -43,7 +43,7 @@ def data_json():
     return jsonify(response.json())
 
 @app.route('/api/market-guide')
-@cache.cached(timeout=3600)
+@cache.cached()
 def api_owners():
     """
     Fetch current number of owners from Avanza API and return JSON.
@@ -58,6 +58,7 @@ def api_owners():
 
 
 @app.route("/api/ascelia-owner-change")
+@cache.cached()
 def get_ascelia_owner_change():
     timestamp = int(time.time() * 1000)
 
