@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
-    <title>Ascelia Owners Chart</title>
+    <title>Ascelia Pharma - antal ägare på Avanza | aktiedata.org</title>
       <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-BSZX8Y630Z"></script>
     <script>
@@ -31,20 +31,23 @@
             height: 100vh;
         }
     </style>
+    <!-- ant design 4 includes global css classes -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/antd@4.24.13/dist/antd.min.css" />
 </head>
 <body>
-<div id="info-box" style="
-  position: absolute;
-  top: 10px;
-  left: 90px;
-  background: white;
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: 0 0 5px #ccc;
-  z-index: 1000; /* 👈 Force it to float above the chart */
+<div class="ant-card ant-card-bordered" style="
+position: absolute;
+top: 10px;
+left: 90px;
+width: 280px;
+border-radius: 5px;
+box-shadow: 0 0 5px #ccc;
+z-index: 1000;
 ">
-  <strong>Ascelia Pharma – Ägare:</strong>
-  <div id="owner-info">Laddar...</div>
+  <div class="ant-card-head">
+    <div class="ant-card-head-title">Ascelia Pharma</div>
+  </div>
+  <div class="ant-card-body" id="owner-info">Laddar...</div>
 </div>
 
     <div id="container"></div>
@@ -108,7 +111,7 @@
                 }
             },
             title: {
-                text: 'Ascelia Owners Over Time'
+                text: 'Ascelia Pharma - antal ägare på Avanza'
             },
             xAxis: {
                 type: 'datetime',
