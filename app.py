@@ -8,7 +8,8 @@ from flask_caching import Cache
 
 app = Flask(__name__, static_folder=None)
 app.config['CACHE_TYPE'] = 'SimpleCache'
-app.config['CACHE_DEFAULT_TIMEOUT'] = 3600
+# 6 hours cache
+app.config['CACHE_DEFAULT_TIMEOUT'] = 60 * 60 * 60 * 6
 cache = Cache(app)
 
 @app.route('/')
