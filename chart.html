@@ -66,6 +66,9 @@ z-index: 1000;
         <li>3 månader: ${info.changes["3m"]}</li>
         <li>i år: ${info.changes["ytd"]}</li>
       </ul>
+        <div style="margin-top: 10px; font-size: 12px; color: gray;">
+    Uppdaterad: ${info.lastUpdated}
+  </div>
     `;
   })
   .catch(err => {

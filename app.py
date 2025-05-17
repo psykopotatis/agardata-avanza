@@ -8,6 +8,8 @@ from flask_caching import Cache
 import logging
 from bs4 import BeautifulSoup
 import time
+from datetime import datetime
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -107,9 +109,13 @@ def get_ascelia_owner_change():
         "ytd": int(cells[6].get_text(strip=True).replace("\xa0", "").replace(" ", ""))
     }
 
+    # Current time in ISO format, e.g., "2025-05-17 14:08"
+    last_updated = datetime.now().strftime("%Y-%m-%d %H:%M")
+
     return jsonify({
         "numberOfOwners": number_of_owners,
-        "changes": changes
+        "changes": changes,
+        "lastUpdated": last_updated
     })
 
 
