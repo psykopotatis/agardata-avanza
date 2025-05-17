@@ -117,6 +117,6 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Ascelia Owners Chart Web Server')
     parser.add_argument('--host', default='0.0.0.0', help='Host to bind')
-    parser.add_argument('--port', default=5001, type=int, help='Port to bind')
+    parser.add_argument('--port', default=5000, type=int, help='Port to bind')
     args = parser.parse_args()
     app.run(host=args.host, port=args.port, debug=True)
