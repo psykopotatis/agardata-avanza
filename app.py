@@ -9,6 +9,7 @@ import logging
 from bs4 import BeautifulSoup
 import time
 from datetime import datetime
+from zoneinfo import ZoneInfo  # Python 3.9+
 
 
 logging.basicConfig(level=logging.INFO)
@@ -110,7 +111,7 @@ def get_ascelia_owner_change():
     }
 
     # Current time in ISO format, e.g., "2025-05-17 14:08"
-    last_updated = datetime.now().strftime("%Y-%m-%d %H:%M")
+    last_updated = datetime.now(ZoneInfo("Europe/Stockholm")).strftime("%Y-%m-%d %H:%M")
 
     return jsonify({
         "numberOfOwners": number_of_owners,
