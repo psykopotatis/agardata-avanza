@@ -31,7 +31,21 @@ def data_json():
     """
     url = "https://www.avanza.se/_api/market-guide/number-of-owners/941919"
     logger.info("GET %s" % url)
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.0"}
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        return jsonify({"error": f"Failed to fetch data: {response.status_code}"}), response.status_code
+    return jsonify(response.json())
+
+@app.route('/api/market-guide')
+@cache.cached(timeout=3600)
+def api_owners():
+    """
+    Fetch current number of owners from Avanza API and return JSON.
+    """
+    url = "https://www.avanza.se/_api/market-guide/stock/941919"
+    logger.info(f"GET {url}")
+    headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.1"}
     response = requests.get(url, headers=headers)
     if response.status_code != 200:
         return jsonify({"error": f"Failed to fetch data: {response.status_code}"}), response.status_code
