@@ -37,72 +37,81 @@
 
     <script>
         // Fetch data.json dynamically
-        fetch('data.json')
-            .then(response => response.json())
-            .then(data => {
-                // Convert timestamps to Highcharts-friendly format
-                const formattedData = data.ownersPoints.map(point => [
-                    point.timestamp,
-                    point.numberOfOwners
-                ]);
+    Promise.all([
+        fetch('data.json').then(res => res.json()),
+        fetch('/api/market-guide').then(res => res.json())
+    ])
+    .then(([dataJson, marketGuide]) => {
+        // Get original data
+        const seriesData = dataJson.ownersPoints.map(point => [point.timestamp, point.numberOfOwners]);
 
-                // Sort data to avoid issues with zooming
-                formattedData.sort((a, b) => a[0] - b[0]);
+        // Get today's timestamp
+        const today = new Date();
+        const todayTimestamp = today.getTime();
 
-                // Create the Highcharts chart
-                Highcharts.chart('container', {
-                    chart: {
-                        type: 'line',
-                        zoomType: 'x', // Enables zooming on x-axis (time)
-                        height: window.innerHeight,
-                        resetZoomButton: {
-                            position: {
-                                align: 'right',
-                                verticalAlign: 'top',
-                                x: -10,
-                                y: 10
-                            }
-                        }
-                    },
-                    title: {
-                        text: 'Ascelia Owners Over Time'
-                    },
-                    xAxis: {
-                        type: 'datetime',
-                        title: {
-                            text: 'Date'
-                        },
-                        ordinal: false,  // Ensures proper zooming behavior
-                        minRange: 7 * 24 * 3600 * 1000  // Prevents zooming in too much (7 days min range)
-                    },
-                    yAxis: {
-                        title: {
-                            text: 'Number of Owners'
-                        }
-                    },
-                    tooltip: {
-                        shared: true,
-                        crosshairs: true
-                    },
-                    legend: {
-                        enabled: false
-                    },
-                    series: [{
-                        name: 'Owners',
-                        data: formattedData
-                    }],
-                    credits: {
-                        enabled: false
+        // Get current number of owners from marketGuide
+        const currentOwners = marketGuide.keyIndicators.numberOfOwners;
+
+        // Add it to the series
+        seriesData.push([todayTimestamp, currentOwners]);
+
+        // Sort data by timestamp
+        seriesData.sort((a, b) => a[0] - b[0]);
+
+        // Create the Highcharts chart
+        Highcharts.chart('container', {
+            chart: {
+                type: 'line',
+                zoomType: 'x', // Enables zooming on x-axis (time)
+                height: window.innerHeight,
+                resetZoomButton: {
+                    position: {
+                        align: 'right',
+                        verticalAlign: 'top',
+                        x: -10,
+                        y: 10
                     }
-                });
+                }
+            },
+            title: {
+                text: 'Ascelia Owners Over Time'
+            },
+            xAxis: {
+                type: 'datetime',
+                title: {
+                    text: 'Date'
+                },
+                ordinal: false,  // Ensures proper zooming behavior
+                minRange: 7 * 24 * 3600 * 1000  // Prevents zooming in too much (7 days min range)
+            },
+            yAxis: {
+                title: {
+                    text: 'Number of Owners'
+                }
+            },
+            tooltip: {
+                shared: true,
+                crosshairs: true
+            },
+            legend: {
+                enabled: false
+            },
+            series: [{
+                name: 'Owners',
+                data: seriesData
+            }],
+            credits: {
+                enabled: false
+            }
+        });
 
-                // Adjust chart size on window resize
-                window.addEventListener('resize', () => {
-                    Highcharts.charts[0].setSize(null, window.innerHeight, false);
-                });
+        // Adjust chart size on window resize
+        window.addEventListener('resize', () => {
+            Highcharts.charts[0].setSize(null, window.innerHeight, false);
+        });
 
-            })
-            .catch(error => console.error('Error loading JSON:', error));
+    }).catch(error => console.error('Error loading JSON:', error));
+
     </script>
 </body>
 </html>
