@@ -33,7 +33,16 @@
     </style>
 </head>
 <body>
-<div id="info-box" style="position: absolute; top: 10px; left: 10px; background: white; padding: 10px; border-radius: 5px; box-shadow: 0 0 5px #ccc;">
+<div id="info-box" style="
+  position: absolute;
+  top: 10px;
+  left: 90px;
+  background: white;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 0 5px #ccc;
+  z-index: 1000; /* 👈 Force it to float above the chart */
+">
   <strong>Ascelia Pharma – Ägare:</strong>
   <div id="owner-info">Laddar...</div>
 </div>
