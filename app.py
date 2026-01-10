@@ -34,6 +34,10 @@ def data_json():
     """
     Fetch owners data from Avanza API and return as JSON.
     """
+    # Egetis
+    # url = "https://www.avanza.se/_api/market-guide/number-of-owners/283294"
+
+    # Ascelia pharma
     url = "https://www.avanza.se/_api/market-guide/number-of-owners/941919"
     logger.info("GET %s" % url)
     headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.0"}
@@ -48,7 +52,7 @@ def api_owners():
     """
     Fetch current number of owners from Avanza API and return JSON.
     """
-    url = "https://www.avanza.se/_api/market-guide/stock/941919"
+    url = "https://www.avanza.se/_api/market-guide/stock/283294"
     logger.info(f"GET {url}")
     headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.1"}
     response = requests.get(url, headers=headers)
