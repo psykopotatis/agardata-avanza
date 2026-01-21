@@ -15,6 +15,23 @@ from zoneinfo import ZoneInfo  # Python 3.9+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Stock configuration - centralized
+STOCK_CONFIG = {
+    "ASCELIA": {
+        "id": "941919",
+        "name": "Ascelia Pharma",
+        "max_owners_filter": 9700,  # For advanced filter query
+    },
+    "EGETIS": {
+        "id": "283294",
+        "name": "Egetis Therapeutics",
+        "max_owners_filter": 7000,  # For advanced filter query
+    }
+}
+
+# Select which stock to use
+CURRENT_STOCK = STOCK_CONFIG["ASCELIA"]
+
 app = Flask(__name__, static_folder=None)
 app.config['CACHE_TYPE'] = 'SimpleCache'
 # 2 hours cache
@@ -28,17 +45,23 @@ def index():
     """
     return send_from_directory('.', 'chart.html')
 
+@app.route('/api/config')
+def api_config():
+    """
+    Return current stock configuration.
+    """
+    return jsonify({
+        "stockId": CURRENT_STOCK["id"],
+        "stockName": CURRENT_STOCK["name"]
+    })
+
 @app.route('/data.json')
 @cache.cached()
 def data_json():
     """
     Fetch owners data from Avanza API and return as JSON.
     """
-    # Egetis
-    # url = "https://www.avanza.se/_api/market-guide/number-of-owners/283294"
-
-    # Ascelia pharma
-    url = "https://www.avanza.se/_api/market-guide/number-of-owners/941919"
+    url = f"https://www.avanza.se/_api/market-guide/number-of-owners/{CURRENT_STOCK['id']}"
     logger.info("GET %s" % url)
     headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.0"}
     response = requests.get(url, headers=headers)
@@ -52,7 +75,7 @@ def api_owners():
     """
     Fetch current number of owners from Avanza API and return JSON.
     """
-    url = "https://www.avanza.se/_api/market-guide/stock/283294"
+    url = f"https://www.avanza.se/_api/market-guide/stock/{CURRENT_STOCK['id']}"
     logger.info(f"GET {url}")
     headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.1"}
     response = requests.get(url, headers=headers)
@@ -75,7 +98,7 @@ def get_ascelia_owner_change():
         "widgets.stockLists.filter.list%5B0%5D=SE.SmallCap.SE&"
         "widgets.stockLists.active=true&"
         "widgets.numberOfOwners.filter.lower=&"
-        "widgets.numberOfOwners.filter.upper=9700&"
+        f"widgets.numberOfOwners.filter.upper={CURRENT_STOCK['max_owners_filter']}&"
         "widgets.numberOfOwners.active=true&"
         "widgets.sectors.filter.list%5B0%5D=17&"
         "widgets.sectors.active=true&"

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0">
-    <title>Ascelia Pharma - antal ägare på Avanza | aktiedata.org</title>
+    <title>Loading... | aktiedata.org</title>
       <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-BSZX8Y630Z"></script>
     <script>
@@ -45,7 +45,7 @@ box-shadow: 0 0 5px #ccc;
 z-index: 1000;
 ">
   <div class="ant-card-head">
-    <div class="ant-card-head-title">Ascelia Pharma</div>
+    <div class="ant-card-head-title" id="stock-name">Loading...</div>
   </div>
   <div class="ant-card-body" id="owner-info">Laddar...</div>
 </div>
@@ -53,28 +53,45 @@ z-index: 1000;
     <div id="container"></div>
 
     <script>
-        fetch('/api/ascelia-owner-change')
-  .then(res => res.json())
-  .then(info => {
-    document.getElementById('owner-info').innerHTML = `
-      <div><strong>Nuvarande ägare:</strong> ${info.numberOfOwners.toLocaleString()}</div>
-      <div><strong>Förändring:</strong></div>
-      <ul>
-        <li>1 dag: ${info.changes["1d"]}</li>
-        <li>1 vecka: ${info.changes["1w"]}</li>
-        <li>1 månad: ${info.changes["1m"]}</li>
-        <li>3 månader: ${info.changes["3m"]}</li>
-        <li>i år: ${info.changes["ytd"]}</li>
-      </ul>
-        <div style="margin-top: 10px; font-size: 12px; color: gray;">
-    Uppdaterad: ${info.lastUpdated}
-  </div>
-    `;
-  })
-  .catch(err => {
-    document.getElementById('owner-info').textContent = 'Fel vid hämtning.';
-    console.error(err);
-  });
+        // Fetch config first, then load all data
+        fetch('/api/config')
+            .then(res => res.json())
+            .then(config => {
+                const stockName = config.stockName;
+
+                // Update page title
+                document.title = `${stockName} - antal ägare på Avanza | aktiedata.org`;
+
+                // Update card title
+                document.getElementById('stock-name').textContent = stockName;
+
+                // Store stockName for later use in chart
+                window.stockName = stockName;
+
+                // Now fetch owner change data
+                return fetch('/api/ascelia-owner-change');
+            })
+            .then(res => res.json())
+            .then(info => {
+                document.getElementById('owner-info').innerHTML = `
+                  <div><strong>Nuvarande ägare:</strong> ${info.numberOfOwners.toLocaleString()}</div>
+                  <div><strong>Förändring:</strong></div>
+                  <ul>
+                    <li>1 dag: ${info.changes["1d"]}</li>
+                    <li>1 vecka: ${info.changes["1w"]}</li>
+                    <li>1 månad: ${info.changes["1m"]}</li>
+                    <li>3 månader: ${info.changes["3m"]}</li>
+                    <li>i år: ${info.changes["ytd"]}</li>
+                  </ul>
+                    <div style="margin-top: 10px; font-size: 12px; color: gray;">
+                Uppdaterad: ${info.lastUpdated}
+              </div>
+                `;
+            })
+            .catch(err => {
+                document.getElementById('owner-info').textContent = 'Fel vid hämtning.';
+                console.error(err);
+            });
 
         // Fetch data.json dynamically
     Promise.all([
@@ -114,7 +131,7 @@ z-index: 1000;
                 }
             },
             title: {
-                text: 'Ascelia Pharma - antal ägare på Avanza'
+                text: `${window.stockName || 'Loading...'} - antal ägare på Avanza`
             },
             xAxis: {
                 type: 'datetime',
