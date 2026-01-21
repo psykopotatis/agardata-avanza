@@ -2,7 +2,7 @@
 """
 Simple Flask web server to serve Ascelia Owners Chart and dynamic data.
 """
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request
 import requests
 from flask_caching import Cache
 import logging
@@ -45,23 +45,52 @@ def index():
     """
     return send_from_directory('.', 'chart.html')
 
+@app.route('/api/stocks')
+def api_stocks():
+    """
+    Return list of available stocks.
+    """
+    stocks = []
+    for key, config in STOCK_CONFIG.items():
+        stocks.append({
+            "key": key,
+            "id": config["id"],
+            "name": config["name"]
+        })
+    return jsonify({"stocks": stocks, "default": "ASCELIA"})
+
 @app.route('/api/config')
 def api_config():
     """
     Return current stock configuration.
+    Accepts optional 'stock' query parameter (e.g., ?stock=ASCELIA or ?stock=EGETIS)
     """
+    stock_key = request.args.get('stock', 'ASCELIA').upper()
+
+    if stock_key not in STOCK_CONFIG:
+        return jsonify({"error": f"Invalid stock: {stock_key}"}), 400
+
+    stock = STOCK_CONFIG[stock_key]
     return jsonify({
-        "stockId": CURRENT_STOCK["id"],
-        "stockName": CURRENT_STOCK["name"]
+        "stockId": stock["id"],
+        "stockName": stock["name"],
+        "stockKey": stock_key
     })
 
 @app.route('/data.json')
-@cache.cached()
+@cache.cached(query_string=True)
 def data_json():
     """
     Fetch owners data from Avanza API and return as JSON.
+    Accepts optional 'stock' query parameter.
     """
-    url = f"https://www.avanza.se/_api/market-guide/number-of-owners/{CURRENT_STOCK['id']}"
+    stock_key = request.args.get('stock', 'ASCELIA').upper()
+
+    if stock_key not in STOCK_CONFIG:
+        return jsonify({"error": f"Invalid stock: {stock_key}"}), 400
+
+    stock = STOCK_CONFIG[stock_key]
+    url = f"https://www.avanza.se/_api/market-guide/number-of-owners/{stock['id']}"
     logger.info("GET %s" % url)
     headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.0"}
     response = requests.get(url, headers=headers)
@@ -70,12 +99,19 @@ def data_json():
     return jsonify(response.json())
 
 @app.route('/api/market-guide')
-@cache.cached()
+@cache.cached(query_string=True)
 def api_owners():
     """
     Fetch current number of owners from Avanza API and return JSON.
+    Accepts optional 'stock' query parameter.
     """
-    url = f"https://www.avanza.se/_api/market-guide/stock/{CURRENT_STOCK['id']}"
+    stock_key = request.args.get('stock', 'ASCELIA').upper()
+
+    if stock_key not in STOCK_CONFIG:
+        return jsonify({"error": f"Invalid stock: {stock_key}"}), 400
+
+    stock = STOCK_CONFIG[stock_key]
+    url = f"https://www.avanza.se/_api/market-guide/stock/{stock['id']}"
     logger.info(f"GET {url}")
     headers = {"Accept": "application/json", "User-Agent": "Mozilla/5.1"}
     response = requests.get(url, headers=headers)
@@ -85,8 +121,14 @@ def api_owners():
 
 
 @app.route("/api/ascelia-owner-change")
-@cache.cached()
+@cache.cached(query_string=True)
 def get_ascelia_owner_change():
+    stock_key = request.args.get('stock', 'ASCELIA').upper()
+
+    if stock_key not in STOCK_CONFIG:
+        return jsonify({"error": f"Invalid stock: {stock_key}"}), 400
+
+    stock = STOCK_CONFIG[stock_key]
     timestamp = int(time.time() * 1000)
 
     url = (
@@ -98,7 +140,7 @@ def get_ascelia_owner_change():
         "widgets.stockLists.filter.list%5B0%5D=SE.SmallCap.SE&"
         "widgets.stockLists.active=true&"
         "widgets.numberOfOwners.filter.lower=&"
-        f"widgets.numberOfOwners.filter.upper={CURRENT_STOCK['max_owners_filter']}&"
+        f"widgets.numberOfOwners.filter.upper={stock['max_owners_filter']}&"
         "widgets.numberOfOwners.active=true&"
         "widgets.sectors.filter.list%5B0%5D=17&"
         "widgets.sectors.active=true&"

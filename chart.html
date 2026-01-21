@@ -35,6 +35,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/antd@4.24.13/dist/antd.min.css" />
 </head>
 <body>
+<!-- Stock selector -->
 <div class="ant-card ant-card-bordered" style="
 position: absolute;
 top: 10px;
@@ -44,130 +45,186 @@ border-radius: 5px;
 box-shadow: 0 0 5px #ccc;
 z-index: 1000;
 ">
-  <div class="ant-card-head">
-    <div class="ant-card-head-title" id="stock-name">Loading...</div>
+  <div class="ant-card-body">
+    <label style="display: block; margin-bottom: 8px; font-weight: 500;">Välj aktie:</label>
+    <select id="stock-selector" class="ant-select" style="
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+    ">
+      <option value="">Laddar...</option>
+    </select>
   </div>
-  <div class="ant-card-body" id="owner-info">Laddar...</div>
 </div>
 
     <div id="container"></div>
 
     <script>
-        // Fetch config first, then load all data
-        fetch('/api/config')
-            .then(res => res.json())
-            .then(config => {
-                const stockName = config.stockName;
+        let currentChart = null;
+        let currentStock = 'ASCELIA';
 
-                // Update page title
-                document.title = `${stockName} - antal ägare på Avanza | aktiedata.org`;
+        // Load available stocks and populate selector
+        function loadStockSelector() {
+            fetch('/api/stocks')
+                .then(res => res.json())
+                .then(data => {
+                    const selector = document.getElementById('stock-selector');
+                    selector.innerHTML = '';
 
-                // Update card title
-                document.getElementById('stock-name').textContent = stockName;
+                    data.stocks.forEach(stock => {
+                        const option = document.createElement('option');
+                        option.value = stock.key;
+                        option.textContent = stock.name;
+                        if (stock.key === data.default) {
+                            option.selected = true;
+                            currentStock = stock.key;
+                        }
+                        selector.appendChild(option);
+                    });
 
-                // Store stockName for later use in chart
-                window.stockName = stockName;
+                    // Add change event listener
+                    selector.addEventListener('change', (e) => {
+                        currentStock = e.target.value;
+                        loadStockData(currentStock);
+                    });
 
-                // Now fetch owner change data
-                return fetch('/api/ascelia-owner-change');
-            })
-            .then(res => res.json())
-            .then(info => {
-                document.getElementById('owner-info').innerHTML = `
-                  <div><strong>Nuvarande ägare:</strong> ${info.numberOfOwners.toLocaleString()}</div>
-                  <div><strong>Förändring:</strong></div>
-                  <ul>
-                    <li>1 dag: ${info.changes["1d"]}</li>
-                    <li>1 vecka: ${info.changes["1w"]}</li>
-                    <li>1 månad: ${info.changes["1m"]}</li>
-                    <li>3 månader: ${info.changes["3m"]}</li>
-                    <li>i år: ${info.changes["ytd"]}</li>
-                  </ul>
-                    <div style="margin-top: 10px; font-size: 12px; color: gray;">
-                Uppdaterad: ${info.lastUpdated}
-              </div>
-                `;
-            })
-            .catch(err => {
-                document.getElementById('owner-info').textContent = 'Fel vid hämtning.';
-                console.error(err);
-            });
+                    // Load initial stock data
+                    loadStockData(currentStock);
+                })
+                .catch(err => {
+                    console.error('Error loading stocks:', err);
+                    document.getElementById('stock-selector').innerHTML = '<option>Fel vid laddning</option>';
+                });
+        }
 
-        // Fetch data.json dynamically
-    Promise.all([
-        fetch('data.json').then(res => res.json()),
-        fetch('/api/market-guide').then(res => res.json())
-    ])
-    .then(([dataJson, marketGuide]) => {
-        // Get original data
-        const seriesData = dataJson.ownersPoints.map(point => [point.timestamp, point.numberOfOwners]);
+        // Load data for a specific stock
+        function loadStockData(stockKey) {
+            // Update page title
+            fetch(`/api/config?stock=${stockKey}`)
+                .then(res => res.json())
+                .then(config => {
+                    const stockName = config.stockName;
+                    document.title = `${stockName} - antal ägare på Avanza | aktiedata.org`;
+                    window.stockName = stockName;
+                })
+                .catch(err => {
+                    console.error('Error fetching config:', err);
+                });
 
-        // Get today's timestamp
-        const today = new Date();
-        const todayTimestamp = today.getTime();
+            // Update chart
+            loadChartData(stockKey);
+        }
 
-        // Get current number of owners from marketGuide
-        const currentOwners = marketGuide.keyIndicators.numberOfOwners;
+        function loadChartData(stockKey) {
+            // Show loading state
+            document.getElementById('container').innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100vh;">Laddar diagram...</div>';
 
-        // Add it to the series
-        seriesData.push([todayTimestamp, currentOwners]);
+            Promise.all([
+                fetch(`data.json?stock=${stockKey}`).then(res => {
+                    if (!res.ok) throw new Error(`Kunde inte hämta historisk data (HTTP ${res.status})`);
+                    return res.json();
+                }),
+                fetch(`/api/market-guide?stock=${stockKey}`).then(res => {
+                    if (!res.ok) throw new Error(`Kunde inte hämta aktuell marknadsdata (HTTP ${res.status})`);
+                    return res.json();
+                })
+            ])
+            .then(([dataJson, marketGuide]) => {
+                // Get original data
+                const seriesData = dataJson.ownersPoints.map(point => [point.timestamp, point.numberOfOwners]);
 
-        // Sort data by timestamp
-        seriesData.sort((a, b) => a[0] - b[0]);
+                // Get today's timestamp
+                const today = new Date();
+                const todayTimestamp = today.getTime();
 
-        // Create the Highcharts chart
-        Highcharts.chart('container', {
-            chart: {
-                type: 'line',
-                zoomType: 'x', // Enables zooming on x-axis (time)
-                height: window.innerHeight,
-                resetZoomButton: {
-                    position: {
-                        align: 'right',
-                        verticalAlign: 'top',
-                        x: -10,
-                        y: 10
+                // Get current number of owners from marketGuide
+                const currentOwners = marketGuide.keyIndicators.numberOfOwners;
+
+                // Add it to the series
+                seriesData.push([todayTimestamp, currentOwners]);
+
+                // Sort data by timestamp
+                seriesData.sort((a, b) => a[0] - b[0]);
+
+                // Destroy previous chart if it exists
+                if (currentChart) {
+                    currentChart.destroy();
+                }
+
+                // Clear container
+                document.getElementById('container').innerHTML = '';
+
+                // Create the Highcharts chart
+                currentChart = Highcharts.chart('container', {
+                    chart: {
+                        type: 'line',
+                        zoomType: 'x', // Enables zooming on x-axis (time)
+                        height: window.innerHeight,
+                        resetZoomButton: {
+                            position: {
+                                align: 'right',
+                                verticalAlign: 'top',
+                                x: -10,
+                                y: 10
+                            }
+                        }
+                    },
+                    title: {
+                        text: `${window.stockName || 'Loading...'} - antal ägare på Avanza`
+                    },
+                    xAxis: {
+                        type: 'datetime',
+                        title: {
+                            text: 'Date'
+                        },
+                        ordinal: false,  // Ensures proper zooming behavior
+                        minRange: 7 * 24 * 3600 * 1000  // Prevents zooming in too much (7 days min range)
+                    },
+                    yAxis: {
+                        title: {
+                            text: 'Number of Owners'
+                        }
+                    },
+                    tooltip: {
+                        shared: true,
+                        crosshairs: true
+                    },
+                    legend: {
+                        enabled: false
+                    },
+                    series: [{
+                        name: 'Owners',
+                        data: seriesData
+                    }],
+                    credits: {
+                        enabled: false
                     }
-                }
-            },
-            title: {
-                text: `${window.stockName || 'Loading...'} - antal ägare på Avanza`
-            },
-            xAxis: {
-                type: 'datetime',
-                title: {
-                    text: 'Date'
-                },
-                ordinal: false,  // Ensures proper zooming behavior
-                minRange: 7 * 24 * 3600 * 1000  // Prevents zooming in too much (7 days min range)
-            },
-            yAxis: {
-                title: {
-                    text: 'Number of Owners'
-                }
-            },
-            tooltip: {
-                shared: true,
-                crosshairs: true
-            },
-            legend: {
-                enabled: false
-            },
-            series: [{
-                name: 'Owners',
-                data: seriesData
-            }],
-            credits: {
-                enabled: false
-            }
-        });
+                });
+
+            }).catch(error => {
+                console.error('Error loading chart data:', error);
+                document.getElementById('container').innerHTML = `
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; color: #ff4d4f;">
+                        <h2>Fel vid laddning av diagram</h2>
+                        <p>${error.message || 'Okänt fel uppstod'}</p>
+                        <p style="font-size: 14px; color: #666;">Försök ladda om sidan eller kontrollera din internetanslutning.</p>
+                    </div>
+                `;
+            });
+        }
 
         // Adjust chart size on window resize
         window.addEventListener('resize', () => {
-            Highcharts.charts[0].setSize(null, window.innerHeight, false);
+            if (currentChart) {
+                currentChart.setSize(null, window.innerHeight, false);
+            }
         });
 
-    }).catch(error => console.error('Error loading JSON:', error));
+        // Initialize the page
+        loadStockSelector();
 
     </script>
 </body>
